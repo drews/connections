@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  multiversal-bookmarks:
+    build: .
+    image: multiversal-bookmarks:latest
+    container_name: multiversal-bookmarks
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data:/data
+      - ./bookmarks.db:/app/bookmarks.db
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+    restart: unless-stopped
+    labels:
+      - "app=multiversal-bookmarks"
+      - "description=Collaborative bookmarking for themultiverse.school"
+
+  # Optional: Add Traefik integration for themultiverse.school
+  # Uncomment and configure if deploying to campus-quest-infra
+  #
+  # labels:
+  #   - "traefik.enable=true"
+  #   - "traefik.http.routers.bookmarks.rule=Host(`bookmarks.themultiverse.school`)"
+  #   - "traefik.http.routers.bookmarks.entrypoints=websecure"
+  #   - "traefik.http.routers.bookmarks.tls=true"
+  #   - "traefik.http.routers.bookmarks.tls.certresolver=myresolver"
+  #   - "traefik.http.services.bookmarks.loadbalancer.server.port=3000"
+
+volumes:
+  data:
+    driver: local
