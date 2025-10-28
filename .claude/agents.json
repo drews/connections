@@ -1,0 +1,21 @@
+{
+  "agents": [
+    {
+      "name": "bookmark-curator",
+      "description": "Autonomous agent for intelligent bookmark curation, duplicate detection, tag suggestions, collection generation, and health monitoring",
+      "prompt_file": "agents/bookmark-curator.md",
+      "model": "haiku",
+      "tools": ["Read", "Write", "Bash", "Glob", "Grep"],
+      "triggers": {
+        "keywords": ["bookmark", "curate", "duplicate", "organize", "collection", "tag"],
+        "patterns": [
+          "analyze bookmarks",
+          "check for duplicates",
+          "suggest tags",
+          "create collection",
+          "health check"
+        ]
+      }
+    }
+  ]
+}
