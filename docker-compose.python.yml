@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  bookmarks-python:
+    build:
+      context: ./python
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./bookmarks.db:/app/bookmarks.db
+      - ./frontend:/app/frontend
+    environment:
+      - PORT=3000
+    restart: unless-stopped
