@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cytoscape.js Interactive Demo - Multiversal Bookmarks</title>
+  <script src="https://cdn.jsdelivr.net/npm/cytoscape@3.30.0/dist/cytoscape.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/cytoscape-cose-bilkent@4.1.0/cytoscape-cose-bilkent.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    #cy {
+      width: 100%;
+      height: 600px;
+      background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+      border-radius: 12px;
+      box-shadow: 0 10px 40px -10px rgba(0,0,0,0.2);
+    }
+
+    .control-btn {
+      transition: all 0.2s;
+    }
+
+    .control-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+    }
+
+    .info-panel {
+      backdrop-filter: blur(10px);
+      background: rgba(255, 255, 255, 0.9);
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .pulse {
+      animation: pulse 2s infinite;
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-50 min-h-screen p-8">
+
+  <!-- Header -->
+  <div class="max-w-7xl mx-auto mb-8">
+    <h1 class="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 mb-2">
+      📚 Cytoscape.js Interactive Demo
+    </h1>
+    <p class="text-gray-600">Neural network-style bookmark visualization - Click, drag, and explore!</p>
+  </div>
+
+  <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-6">
+
+    <!-- Main Graph -->
+    <div class="lg:col-span-3">
+      <div id="cy"></div>
+
+      <!-- Controls -->
+      <div class="mt-4 flex gap-3 flex-wrap">
+        <button onclick="fitGraph()" class="control-btn bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold">
+          🎯 Fit to Screen
+        </button>
+        <button onclick="resetLayout()" class="control-btn bg-indigo-600 text-white px-6 py-3 rounded-lg font-semibold">
+          🔄 Reset Layout
+        </button>
+        <button onclick="addRandomBookmark()" class="control-btn bg-green-600 text-white px-6 py-3 rounded-lg font-semibold">
+          ➕ Add Random Bookmark
+        </button>
+        <button onclick="highlightTag('react')" class="control-btn bg-orange-600 text-white px-6 py-3 rounded-lg font-semibold">
+          🏷️ Highlight React
+        </button>
+        <button onclick="clearHighlight()" class="control-btn bg-gray-600 text-white px-6 py-3 rounded-lg font-semibold">
+          ✨ Clear Highlight
+        </button>
+        <button onclick="exportGraph()" class="control-btn bg-purple-600 text-white px-6 py-3 rounded-lg font-semibold">
+          💾 Export PNG
+        </button>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="space-y-4">
+
+      <!-- Selected Node Info -->
+      <div class="info-panel rounded-xl shadow-lg p-4 border border-blue-100">
+        <h3 class="font-semibold text-gray-900 mb-3">📍 Selected Node</h3>
+        <div id="nodeInfo" class="text-sm text-gray-600">
+          <p class="italic">Click a node to see details</p>
+        </div>
+      </div>
+
+      <!-- Graph Stats -->
+      <div class="info-panel rounded-xl shadow-lg p-4 border border-blue-100">
+        <h3 class="font-semibold text-gray-900 mb-3">📊 Graph Stats</h3>
+        <div id="stats" class="space-y-2 text-sm text-gray-600">
+          <div><strong>Nodes:</strong> <span id="nodeCount">0</span></div>
+          <div><strong>Edges:</strong> <span id="edgeCount">0</span></div>
+          <div><strong>Avg Connections:</strong> <span id="avgConnections">0</span></div>
+        </div>
+      </div>
+
+      <!-- Legend -->
+      <div class="info-panel rounded-xl shadow-lg p-4 border border-blue-100">
+        <h3 class="font-semibold text-gray-900 mb-3">🎨 Legend</h3>
+        <div class="space-y-2 text-xs">
+          <div class="flex items-center gap-2">
+            <div class="w-4 h-4 rounded-full bg-blue-600"></div>
+            <span class="text-gray-600">Bookmark node</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="w-4 h-0.5 bg-blue-500"></div>
+            <span class="text-gray-600">Shared tags</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="w-4 h-0.5 bg-green-500" style="border-top: 2px dashed"></div>
+            <span class="text-gray-600">Same domain</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="w-4 h-4 rounded-full bg-pink-600"></div>
+            <span class="text-gray-600">Selected</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="w-4 h-4 rounded-full bg-orange-500"></div>
+            <span class="text-gray-600">Highlighted</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Instructions -->
+      <div class="info-panel rounded-xl shadow-lg p-4 border border-blue-100">
+        <h3 class="font-semibold text-gray-900 mb-3">💡 Try This</h3>
+        <ul class="space-y-2 text-xs text-gray-600">
+          <li>🖱️ Click nodes to select</li>
+          <li>🖐️ Drag nodes to reposition</li>
+          <li>🔍 Scroll to zoom in/out</li>
+          <li>👆 Hover to see connections</li>
+          <li>🎯 Double-click to open URL</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Sample bookmark data
+    const sampleBookmarks = [
+      { id: 1, title: 'React Docs', url: 'https://react.dev', tags: ['react', 'docs', 'javascript'] },
+      { id: 2, title: 'React Tutorial', url: 'https://react.dev/tutorial', tags: ['react', 'tutorial'] },
+      { id: 3, title: 'Cytoscape.js', url: 'https://js.cytoscape.org', tags: ['visualization', 'graph', 'javascript'] },
+      { id: 4, title: 'Tailwind CSS', url: 'https://tailwindcss.com', tags: ['css', 'design', 'docs'] },
+      { id: 5, title: 'Vite', url: 'https://vitejs.dev', tags: ['build-tool', 'javascript', 'react'] },
+      { id: 6, title: 'TypeScript', url: 'https://typescriptlang.org', tags: ['javascript', 'typescript', 'docs'] },
+      { id: 7, title: 'Tauri', url: 'https://tauri.app', tags: ['desktop', 'rust', 'react'] },
+      { id: 8, title: 'Ink', url: 'https://github.com/vadimdemedes/ink', tags: ['cli', 'react', 'terminal'] },
+      { id: 9, title: 'D3.js', url: 'https://d3js.org', tags: ['visualization', 'javascript', 'graph'] },
+      { id: 10, title: 'React Query', url: 'https://tanstack.com/query', tags: ['react', 'data-fetching', 'javascript'] }
+    ];
+
+    // Build graph elements
+    function buildGraphElements(bookmarks) {
+      const nodes = bookmarks.map(b => ({
+        data: {
+          id: `b${b.id}`,
+          title: b.title,
+          url: b.url,
+          tags: b.tags,
+          connections: 0
+        }
+      }));
+
+      const edges = [];
+      const edgeMap = new Map();
+
+      // Create edges based on shared tags
+      for (let i = 0; i < bookmarks.length; i++) {
+        for (let j = i + 1; j < bookmarks.length; j++) {
+          const b1 = bookmarks[i];
+          const b2 = bookmarks[j];
+          const sharedTags = b1.tags.filter(t => b2.tags.includes(t));
+
+          if (sharedTags.length > 0) {
+            const edgeId = `b${b1.id}-b${b2.id}`;
+            edges.push({
+              data: {
+                id: edgeId,
+                source: `b${b1.id}`,
+                target: `b${b2.id}`,
+                weight: sharedTags.length,
+                type: 'tag'
+              }
+            });
+          }
+
+          // Same domain edge
+          try {
+            const domain1 = new URL(b1.url).hostname;
+            const domain2 = new URL(b2.url).hostname;
+            if (domain1 === domain2) {
+              edges.push({
+                data: {
+                  id: `b${b1.id}-b${b2.id}-domain`,
+                  source: `b${b1.id}`,
+                  target: `b${b2.id}`,
+                  weight: 0.5,
+                  type: 'domain'
+                }
+              });
+            }
+          } catch (e) {}
+        }
+      }
+
+      // Update connection counts
+      edges.forEach(edge => {
+        const sourceNode = nodes.find(n => n.data.id === edge.data.source);
+        const targetNode = nodes.find(n => n.data.id === edge.data.target);
+        if (sourceNode) sourceNode.data.connections++;
+        if (targetNode) targetNode.data.connections++;
+      });
+
+      return { nodes, edges };
+    }
+
+    const { nodes, edges } = buildGraphElements(sampleBookmarks);
+
+    // Initialize Cytoscape
+    const cy = cytoscape({
+      container: document.getElementById('cy'),
+
+      elements: [...nodes, ...edges],
+
+      style: [
+        {
+          selector: 'node',
+          style: {
+            'background-color': '#4F46E5',
+            'label': 'data(title)',
+            'width': ele => Math.min(40 + (ele.data('connections') || 1) * 8, 100),
+            'height': ele => Math.min(40 + (ele.data('connections') || 1) * 8, 100),
+            'font-size': '11px',
+            'text-valign': 'bottom',
+            'text-halign': 'center',
+            'text-margin-y': 5,
+            'color': '#1F2937',
+            'text-outline-color': '#FFFFFF',
+            'text-outline-width': 3,
+            'text-max-width': '120px',
+            'text-wrap': 'wrap',
+            'overlay-opacity': 0,
+            'transition-property': 'background-color, border-width, border-color',
+            'transition-duration': '0.2s'
+          }
+        },
+        {
+          selector: 'edge',
+          style: {
+            'width': ele => Math.max(2, (ele.data('weight') || 1) * 2),
+            'line-color': '#94A3B8',
+            'curve-style': 'bezier',
+            'opacity': 0.6
+          }
+        },
+        {
+          selector: 'edge[type="tag"]',
+          style: {
+            'line-color': '#3B82F6',
+            'target-arrow-shape': 'none'
+          }
+        },
+        {
+          selector: 'edge[type="domain"]',
+          style: {
+            'line-color': '#10B981',
+            'line-style': 'dashed'
+          }
+        },
+        {
+          selector: 'node:selected',
+          style: {
+            'background-color': '#EC4899',
+            'border-width': 4,
+            'border-color': '#BE185D'
+          }
+        },
+        {
+          selector: 'node.highlighted',
+          style: {
+            'background-color': '#F59E0B',
+            'border-width': 3,
+            'border-color': '#D97706'
+          }
+        },
+        {
+          selector: 'node.dimmed',
+          style: {
+            'opacity': 0.2
+          }
+        },
+        {
+          selector: 'edge.dimmed',
+          style: {
+            'opacity': 0.1
+          }
+        }
+      ],
+
+      layout: {
+        name: 'cose-bilkent',
+        animate: true,
+        animationDuration: 1000,
+        nodeDimensionsIncludeLabels: true,
+        idealEdgeLength: 150,
+        edgeElasticity: 0.45,
+        gravity: 0.25,
+        numIter: 2500
+      },
+
+      minZoom: 0.3,
+      maxZoom: 3,
+      wheelSensitivity: 0.2
+    });
+
+    // Event handlers
+    cy.on('tap', 'node', function(evt) {
+      const node = evt.target;
+      const data = node.data();
+
+      document.getElementById('nodeInfo').innerHTML = `
+        <div class="space-y-2">
+          <div><strong>Title:</strong> ${data.title}</div>
+          <div><strong>URL:</strong><br/><a href="${data.url}" target="_blank" class="text-blue-600 hover:underline text-xs break-all">${data.url}</a></div>
+          <div><strong>Tags:</strong><br/>${data.tags.map(t => `<span class="inline-block bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-xs mr-1 mt-1">#${t}</span>`).join('')}</div>
+          <div><strong>Connections:</strong> ${data.connections}</div>
+        </div>
+      `;
+    });
+
+    cy.on('dblclick', 'node', function(evt) {
+      const url = evt.target.data('url');
+      window.open(url, '_blank');
+    });
+
+    cy.on('mouseover', 'node', function(evt) {
+      const node = evt.target;
+      const connectedEdges = node.connectedEdges();
+      const connectedNodes = connectedEdges.connectedNodes();
+
+      cy.elements().addClass('dimmed');
+      node.removeClass('dimmed');
+      connectedNodes.removeClass('dimmed');
+      connectedEdges.removeClass('dimmed');
+    });
+
+    cy.on('mouseout', 'node', function() {
+      cy.elements().removeClass('dimmed');
+    });
+
+    // Update stats
+    function updateStats() {
+      const nodeCount = cy.nodes().length;
+      const edgeCount = cy.edges().length;
+      const avgConnections = cy.nodes().reduce((sum, n) => sum + (n.data('connections') || 0), 0) / nodeCount;
+
+      document.getElementById('nodeCount').textContent = nodeCount;
+      document.getElementById('edgeCount').textContent = edgeCount;
+      document.getElementById('avgConnections').textContent = avgConnections.toFixed(1);
+    }
+
+    updateStats();
+
+    // Control functions
+    function fitGraph() {
+      cy.fit(undefined, 50);
+      cy.animate({
+        zoom: cy.zoom() * 0.9,
+        duration: 300
+      });
+    }
+
+    function resetLayout() {
+      cy.layout({
+        name: 'cose-bilkent',
+        animate: true,
+        animationDuration: 1000,
+        nodeDimensionsIncludeLabels: true,
+        idealEdgeLength: 150,
+        edgeElasticity: 0.45,
+        gravity: 0.25,
+        numIter: 2500
+      }).run();
+    }
+
+    function addRandomBookmark() {
+      const randomTitles = ['Vue.js Guide', 'Angular Docs', 'Svelte Tutorial', 'Next.js', 'Remix Run', 'Astro Build'];
+      const randomTags = ['react', 'javascript', 'docs', 'tutorial', 'framework', 'css'];
+
+      const newId = cy.nodes().length + 1;
+      const title = randomTitles[Math.floor(Math.random() * randomTitles.length)];
+      const tags = randomTags.sort(() => 0.5 - Math.random()).slice(0, 3);
+
+      cy.add({
+        data: {
+          id: `b${newId}`,
+          title: title,
+          url: 'https://example.com',
+          tags: tags,
+          connections: 0
+        }
+      });
+
+      // Add edges to existing nodes with shared tags
+      cy.nodes().forEach(node => {
+        if (node.id() === `b${newId}`) return;
+        const sharedTags = tags.filter(t => (node.data('tags') || []).includes(t));
+        if (sharedTags.length > 0) {
+          cy.add({
+            data: {
+              id: `b${newId}-${node.id()}`,
+              source: `b${newId}`,
+              target: node.id(),
+              weight: sharedTags.length,
+              type: 'tag'
+            }
+          });
+          node.data('connections', (node.data('connections') || 0) + 1);
+          cy.$id(`b${newId}`).data('connections', (cy.$id(`b${newId}`).data('connections') || 0) + 1);
+        }
+      });
+
+      resetLayout();
+      updateStats();
+    }
+
+    function highlightTag(tag) {
+      cy.nodes().forEach(node => {
+        const tags = node.data('tags') || [];
+        if (tags.includes(tag)) {
+          node.addClass('highlighted');
+          node.removeClass('dimmed');
+        } else {
+          node.removeClass('highlighted');
+          node.addClass('dimmed');
+        }
+      });
+    }
+
+    function clearHighlight() {
+      cy.elements().removeClass('highlighted dimmed');
+    }
+
+    function exportGraph() {
+      const png = cy.png({
+        output: 'blob',
+        bg: '#F8FAFC',
+        full: true,
+        scale: 2
+      });
+
+      const url = URL.createObjectURL(png);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `bookmarks-graph-${Date.now()}.png`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // Initial fit
+    setTimeout(() => fitGraph(), 100);
+  </script>
+</body>
+</html>
