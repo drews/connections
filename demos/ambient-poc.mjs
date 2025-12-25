@@ -144,11 +144,30 @@ function renderOverlay(fb, time, fps, focusX, focusY, usingKeyboard, lastKey) {
   const controlsX = Math.floor((width - controls.length) / 2);
   fb.write(controlsX, 2, controls, 245);
 
-  // Debug: show last key pressed
-  if (lastKey) {
-    const keyDebug = ` last key: ${lastKey} `;
-    fb.write(Math.floor((width - keyDebug.length) / 2), 3, keyDebug, 208);
+  // Debug panel - show input diagnostics
+  const mouseStatus = fb.platform === 'win32'
+    ? 'NO (Win32 Node.js bug)'
+    : (fb.mouse.x >= 0 ? 'YES' : 'waiting...');
+
+  const debugLines = [
+    `platform: ${fb.platform}`,
+    `raw mode: ${fb.rawModeEnabled ? 'YES' : 'NO'}`,
+    `mouse support: ${mouseStatus}`,
+    `input events: ${fb.inputCount}`,
+    `last raw: ${(fb.lastRawInput || '(none)').slice(0, 20)}`,
+    `cursor: x=${focusX} y=${focusY}`,
+    `last key: ${lastKey || '(none)'}`,
+  ];
+
+  // Draw debug box in top-right
+  const debugWidth = 34;
+  const debugX = width - debugWidth - 2;
+  fb.write(debugX, 1, '┌─ INPUT DEBUG ' + '─'.repeat(debugWidth - 15) + '┐', 245);
+  for (let i = 0; i < debugLines.length; i++) {
+    const line = debugLines[i].slice(0, debugWidth - 3).padEnd(debugWidth - 3);
+    fb.write(debugX, 2 + i, '│ ' + line + '│', 245);
   }
+  fb.write(debugX, 2 + debugLines.length, '└' + '─'.repeat(debugWidth - 1) + '┘', 245);
 
   // Draw cursor crosshair at focus position
   if (focusX >= 0 && focusX < width && focusY >= 0 && focusY < height) {

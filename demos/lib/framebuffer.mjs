@@ -78,6 +78,14 @@ class Framebuffer {
     // Keyboard state
     this.keys = new Set();
     this.keyListeners = [];
+
+    // Debug state
+    this.rawModeEnabled = false;
+    this.stdinResumed = false;
+    this.inputCount = 0;
+    this.lastRawInput = '';
+    this.mouseSupported = process.platform !== 'win32'; // Mouse likely broken on native Windows
+    this.platform = process.platform;
   }
 
   createBuffer() {
@@ -105,9 +113,21 @@ class Framebuffer {
     // Enable raw mode for mouse input
     if (process.stdin.setRawMode) {
       process.stdin.setRawMode(true);
+      this.rawModeEnabled = true;
+    } else {
+      this.rawModeEnabled = false;
     }
+
+    this.stdinResumed = true;
+    this.inputCount = 0;
+    this.lastRawInput = '';
+
     process.stdin.resume();
-    process.stdin.on('data', (data) => this.parseInput(data));
+    process.stdin.on('data', (data) => {
+      this.inputCount++;
+      this.lastRawInput = [...data].map(b => b.toString(16).padStart(2, '0')).join(' ');
+      this.parseInput(data);
+    });
   }
 
   /**
@@ -208,6 +228,9 @@ class Framebuffer {
    * Set a cell in the back buffer
    */
   set(x, y, char, fg = null, bg = null) {
+    // Ensure integer coordinates
+    x = Math.floor(x);
+    y = Math.floor(y);
     if (x < 0 || x >= this.width || y < 0 || y >= this.height) return;
     this.back[y][x].char = char;
     this.back[y][x].fg = fg;
@@ -231,6 +254,8 @@ class Framebuffer {
    * Write a string starting at position
    */
   write(x, y, str, fg = null, bg = null) {
+    x = Math.floor(x);
+    y = Math.floor(y);
     for (let i = 0; i < str.length; i++) {
       this.set(x + i, y, str[i], fg, bg);
     }

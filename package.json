@@ -6,8 +6,9 @@
   "scripts": {
     "start": "node backend/server.js",
     "dev": "nodemon backend/server.js",
-    "demo": "node demos/sphere.mjs",
-    "ambient": "node demos/ambient-poc.mjs"
+    "demo": "node demos/sphere-hybrid.mjs",
+    "demo:ink": "node demos/sphere.mjs",
+    "demo:ambient": "node demos/ambient-poc.mjs"
   },
   "keywords": [
     "bookmarks",
