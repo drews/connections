@@ -12,9 +12,16 @@
 
 import { fbm, seed } from './lib/noise.mjs';
 import { Framebuffer } from './lib/framebuffer.mjs';
-import { graphData, getNode, getChildren, getParents } from './lib/knowledge-graph.mjs';
+import * as KnowledgeGraph from './lib/knowledge-graph.mjs';
+import * as AnimaliaGraph from './lib/animalia-graph.mjs';
 import { getBoxStyle } from './lib/textures.mjs';
 import { States, Timing, createStateMachine, getBreathScale } from './lib/animation.mjs';
+
+// Available datasets
+const DATASETS = {
+  knowledge: { name: 'Systems Thinking', module: KnowledgeGraph },
+  animalia: { name: 'Tree of Life', module: AnimaliaGraph },
+};
 
 // ─────────────────────────────────────────────────────────────
 // Configuration
@@ -139,7 +146,7 @@ function renderNoiseBackground(fb, time, focusX, focusY) {
   }
 }
 
-function renderSystemFrame(fb, focusNode, graph, centerX, centerY) {
+function renderSystemFrame(fb, focusNode, graph, centerX, centerY, getChildren) {
   // System frame: focus node as container, showing children
   const children = getChildren(graph, focusNode.id).slice(0, 5);
 
@@ -172,7 +179,7 @@ function renderSystemFrame(fb, focusNode, graph, centerX, centerY) {
   return { x: centerX, y: centerY - 6 }; // Return focus position for noise influence
 }
 
-function renderComponentFrame(fb, focusNode, graph, centerX, centerY) {
+function renderComponentFrame(fb, focusNode, graph, centerX, centerY, getChildren, getParents) {
   // Component frame: focus node in context, showing parents above and children below
   const parents = getParents(graph, focusNode.id).slice(0, 3);
   const children = getChildren(graph, focusNode.id).slice(0, 3);
@@ -226,11 +233,11 @@ function renderTransition(fb, focusNode, progress, centerX, centerY) {
   return { x: centerX, y: centerY };
 }
 
-function renderChrome(fb, machine, focusNode, fps, navHint) {
+function renderChrome(fb, machine, focusNode, fps, navHint, datasetName) {
   const { width, height } = fb;
 
-  // Title
-  const title = '═══ SPHERE OF INFLUENCE ═══';
+  // Title with dataset name
+  const title = `═══ SPHERE OF INFLUENCE: ${datasetName} ═══`;
   fb.write(Math.floor((width - title.length) / 2), 1, title, CONFIG.fgNode);
 
   // State indicator
@@ -247,7 +254,7 @@ function renderChrome(fb, machine, focusNode, fps, navHint) {
   fb.write(2, height - 2, navHint, CONFIG.fgDim);
 
   // Status bar
-  const status = `${focusNode.label} | ${fps.toFixed(0)} fps | Space: toggle | ←→: navigate | Ctrl+C: exit`;
+  const status = `${focusNode.label} | ${fps.toFixed(0)} fps | Space: toggle | ←→: navigate | Tab: dataset | Ctrl+C: exit`;
   fb.write(Math.floor((width - status.length) / 2), height - 1, status, CONFIG.fgDim);
 }
 
@@ -261,9 +268,39 @@ function run() {
   const fb = new Framebuffer();
   fb.enter();
 
+  // Dataset management
+  let currentDatasetKey = 'animalia';  // Default to Tree of Life
+  let currentDataset = DATASETS[currentDatasetKey];
+  let graphData = currentDataset.module.graphData;
+  let getNode = currentDataset.module.getNode;
+  let getChildren = currentDataset.module.getChildren;
+  let getParents = currentDataset.module.getParents;
+
   const machine = createStateMachine(graphData.demoSequence);
   let autoAdvance = true;
   let manualFocusIndex = 0;
+
+  // Dataset switching helper
+  const switchDataset = () => {
+    const keys = Object.keys(DATASETS);
+    const currentIndex = keys.indexOf(currentDatasetKey);
+    currentDatasetKey = keys[(currentIndex + 1) % keys.length];
+    currentDataset = DATASETS[currentDatasetKey];
+    graphData = currentDataset.module.graphData;
+    getNode = currentDataset.module.getNode;
+    getChildren = currentDataset.module.getChildren;
+    getParents = currentDataset.module.getParents;
+
+    // Reinitialize state machine with new dataset
+    const newMachine = createStateMachine(graphData.demoSequence);
+    machine.state = newMachine.state;
+    machine.stateStartTime = newMachine.stateStartTime;
+    machine.focusIndex = 0;
+    machine.getCurrentFocus = newMachine.getCurrentFocus;
+    machine.update = newMachine.update;
+    machine.getTweenProgress = newMachine.getTweenProgress;
+    manualFocusIndex = 0;
+  };
 
   let running = true;
   let lastTime = Date.now();
@@ -283,6 +320,8 @@ function run() {
       if (!autoAdvance) {
         manualFocusIndex = machine.focusIndex;
       }
+    } else if (key === 'tab') {
+      switchDataset();
     } else if (!autoAdvance) {
       if (key === 'left') {
         manualFocusIndex = (manualFocusIndex - 1 + graphData.demoSequence.length) % graphData.demoSequence.length;
@@ -359,15 +398,15 @@ function run() {
 
     // Layer 2: Graph visualization
     if (machine.state === States.IDLE_SYSTEM) {
-      focusPos = renderSystemFrame(fb, focusNode, graphData, centerX, centerY);
+      focusPos = renderSystemFrame(fb, focusNode, graphData, centerX, centerY, getChildren);
     } else if (machine.state === States.IDLE_COMPONENT) {
-      focusPos = renderComponentFrame(fb, focusNode, graphData, centerX, centerY);
+      focusPos = renderComponentFrame(fb, focusNode, graphData, centerX, centerY, getChildren, getParents);
     } else {
       focusPos = renderTransition(fb, focusNode, machine.getTweenProgress(), centerX, centerY);
     }
 
     // Layer 3: Chrome
-    renderChrome(fb, machine, focusNode, fpsDisplay, getNavHint());
+    renderChrome(fb, machine, focusNode, fpsDisplay, getNavHint(), currentDataset.name);
 
     fb.flush();
 

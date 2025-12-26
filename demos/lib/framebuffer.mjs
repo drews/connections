@@ -185,6 +185,7 @@ class Framebuffer {
     else if (str === '\x1b[C' || str === '\x1bOC' || str === 'd' || str === 'D') key = 'right';
     else if (str === '\x1b[D' || str === '\x1bOD' || str === 'a' || str === 'A') key = 'left';
     else if (str === ' ') key = 'space';
+    else if (str === '\t') key = 'tab';
     else if (str === '\r' || str === '\n') key = 'enter';
     else if (str.length === 1 && str >= '1' && str <= '9') key = str;
     else if (str.length > 0 && !str.startsWith('\x1b[<')) {
