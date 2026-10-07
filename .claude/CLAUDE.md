@@ -32,5 +32,5 @@ Rules for the orchestrator:
 
 ## Conventions
 - Commit messages carry no Claude attribution (see `openspec/project.md`).
-- The design-system mockup lives in a Design canvas artifact; its tokens and glyphs are mirrored in
+- The design-system mockup lives in a Design canvas artifact; its text source is `openspec/changes/rebuild-as-scale-navigator/design-system.md`, and its rules are specified in
   `openspec/changes/rebuild-as-scale-navigator/specs/visual-language/spec.md`.

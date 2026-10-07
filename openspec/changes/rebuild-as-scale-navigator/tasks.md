@@ -2,7 +2,7 @@
 
 ## Phase A — Spec & design system (now)
 - [ ] A.1 Finalize specs for corpus-index, zoom-canvas, viewframes, agent-membrane, visual-language
-- [ ] A.2 Design-system mockup: tokens (dark and light), representation tiers per item kind, trace grammar, viewframe visuals
+- [x] A.2 (v0 drafted, awaiting review; see design-system.md) Design-system mockup: tokens (dark and light), representation tiers per item kind, trace grammar, viewframe visuals
 - [ ] A.3 Resolve each open decision in `design.md`; record the choice and reasoning
 - [ ] A.4 Validate the change strictly; revise specs where decisions require
 
